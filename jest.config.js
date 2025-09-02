@@ -54,6 +54,9 @@ module.exports = {
   // 详细输出
   verbose: true,
   
+  // Jest预设
+  preset: 'ts-jest',
+  
   // TypeScript 配置
   globals: {
     'ts-jest': {
