@@ -1,0 +1,87 @@
+name: 发布Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # 匹配语义化版本标签，如v1.0.0
+
+permissions:
+  contents: write  # 需要写权限来创建release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: 安装依赖
+        run: npm ci
+      
+      - name: 构建项目
+        run: npm run build
+      
+      - name: 打包构建产物
+        run: |
+          cd dist
+          zip -r ../siyuan-mcp-server-${GITHUB_REF#refs/tags/}.zip .
+          cd ..
+      
+      - name: 生成Release说明
+        id: release_notes
+        run: |
+          # 获取tag信息
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          
+          # 获取上一个tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          # 生成变更日志
+          if [ -z "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges | head -20)
+          else
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+          
+          # 创建release说明
+          cat > release_notes.md << EOF
+          ## 🚀 SiYuan MCP Server ${VERSION}
+          
+          ### 📋 更新内容
+          ${COMMITS}
+          
+          ### 📦 安装使用
+          \`\`\`bash
+          # 全局安装
+          npm install -g siyuan-mcp-server@${VERSION}
+          
+          # 启动服务
+          siyuan-mcp-server
+          \`\`\`
+          
+          ### 🔗 相关链接
+          - [使用文档](https://github.com/${GITHUB_REPOSITORY}/blob/main/README.md)
+          - [更新日志](https://github.com/${GITHUB_REPOSITORY}/releases)
+          EOF
+      
+      - name: 创建GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          body_path: release_notes.md
+          files: |
+            siyuan-mcp-server-${{ github.ref_name }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

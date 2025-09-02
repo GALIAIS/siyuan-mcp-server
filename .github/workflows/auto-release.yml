@@ -1,0 +1,104 @@
+name: 自动发布Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 匹配所有以v开头的tag，如v1.0.0, v2.1.3等
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史记录用于生成changelog
+      
+      - name: 设置Node.js环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: 安装依赖
+        run: npm ci
+      
+      - name: 构建项目
+        run: npm run build
+      
+      - name: 运行测试
+        run: npm test
+      
+      - name: 获取版本信息
+        id: version
+        run: |
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: 生成变更日志
+        id: changelog
+        run: |
+          # 获取上一个tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # 如果没有上一个tag，获取所有提交
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            # 获取两个tag之间的提交
+            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # 将换行符转换为\n以便在GitHub Actions中使用
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: 创建Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## 🚀 SiYuan MCP Server ${{ steps.version.outputs.version }}
+            
+            ### 📋 本次更新内容
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ### 📦 安装方式
+            ```bash
+            npm install -g siyuan-mcp-server@${{ steps.version.outputs.version }}
+            ```
+            
+            ### 🔧 使用方法
+            ```bash
+            # 启动服务器
+            siyuan-mcp-server
+            
+            # 或者使用npx
+            npx siyuan-mcp-server
+            ```
+            
+            ---
+            
+            **完整文档**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+          draft: false
+          prerelease: false
+      
+      - name: 上传构建产物
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist
+          asset_name: siyuan-mcp-server-${{ steps.version.outputs.version }}.zip
+          asset_content_type: application/zip
+        continue-on-error: true
