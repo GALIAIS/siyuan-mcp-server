@@ -30,6 +30,9 @@ jobs:
       - name: 构建项目
         run: npm run build
       
+      - name: 运行测试
+        run: npm test -- --passWithNoTests
+      
       - name: 打包构建产物
         run: |
           cd dist

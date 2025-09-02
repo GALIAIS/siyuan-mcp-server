@@ -41,7 +41,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   
   // 模块路径映射
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   
