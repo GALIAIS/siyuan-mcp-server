@@ -453,6 +453,26 @@ export class MergedTools {
    * @returns 工具执行结果
    */
   async handleToolCall(toolName: string, args: any) {
+    // 导入拦截器（动态导入避免循环依赖）
+    const { toolCallInterceptor } = await import('../core/ToolCallInterceptor.js');
+    
+    // 拦截工具调用
+    const interceptionResult = await toolCallInterceptor.interceptToolCall({
+      toolName,
+      parameters: args,
+      requestId: `${toolName}_${Date.now()}`
+    });
+
+    // 如果被拦截，返回拦截结果
+    if (!interceptionResult.shouldProceed) {
+      return createStandardResponse(
+        false,
+        interceptionResult.response?.error || '工具调用被拦截',
+        null,
+        interceptionResult.response?.error
+      );
+    }
+
     try {
       switch (toolName) {
         // ==================== 标准工具处理 ====================

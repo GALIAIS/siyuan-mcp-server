@@ -32,11 +32,46 @@ export function createDocumentOperations(client: SiyuanClient): DocumentOperatio
     },
 
     async createDoc(notebook: string, path: string, title: string, markdown: string = '') {
+      // 强制验证笔记本存在
+      if (!notebook || typeof notebook !== 'string') {
+        throw new Error('创建文档失败: 必须提供有效的笔记本ID');
+      }
+      
+      // 验证笔记本是否存在
+      try {
+        const notebooksResponse = await client.request('/api/notebook/lsNotebooks');
+        if (notebooksResponse.code !== 0) {
+          throw new Error(`获取笔记本列表失败: ${notebooksResponse.msg}`);
+        }
+        
+        const notebooks = notebooksResponse.data?.notebooks || [];
+        const targetNotebook = notebooks.find((nb: any) => nb.id === notebook);
+        
+        if (!targetNotebook) {
+          throw new Error(`创建文档失败: 笔记本 ${notebook} 不存在。请先创建笔记本或使用有效的笔记本ID`);
+        }
+        
+        if (targetNotebook.closed) {
+          throw new Error(`创建文档失败: 笔记本 ${notebook} 已关闭。请先打开笔记本`);
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error(`验证笔记本时出错: ${error}`);
+      }
+      
+      // 验证标题
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
+        throw new Error('创建文档失败: 必须提供有效的文档标题');
+      }
+      
+      // 创建文档
       return await client.request('/api/filetree/createDoc', {
         notebook,
-        path,
-        title,
-        markdown
+        path: path || '/',
+        title: title.trim(),
+        markdown: markdown || ''
       });
     },
 
