@@ -72,20 +72,6 @@ jobs:
             ### 📋 本次更新内容
             ${{ steps.changelog.outputs.changelog }}
             
-            ### 📦 安装方式
-            ```bash
-            npm install -g siyuan-mcp-server@${{ steps.version.outputs.version }}
-            ```
-            
-            ### 🔧 使用方法
-            ```bash
-            # 启动服务器
-            siyuan-mcp-server
-            
-            # 或者使用npx
-            npx siyuan-mcp-server
-            ```
-            
             ---
             
             **完整文档**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)

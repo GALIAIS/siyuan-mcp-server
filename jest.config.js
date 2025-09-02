@@ -12,7 +12,9 @@ module.exports = {
   
   // 转换配置
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: 'tsconfig.json'
+    }],
   },
   
   // 测试文件匹配模式
@@ -56,11 +58,4 @@ module.exports = {
   
   // Jest预设
   preset: 'ts-jest',
-  
-  // TypeScript 配置
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
 };
