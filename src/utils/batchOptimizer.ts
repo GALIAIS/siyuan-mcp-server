@@ -3,7 +3,7 @@
  * 专门处理大量文档的批量读取、处理和优化
  */
 
-import logger from '../logger.js';
+import logger from '../logger';
 
 /**
  * 批量操作配置接口

@@ -86,3 +86,4 @@ organize-tools.js
 
 #other
 api/
+src/__tests__/

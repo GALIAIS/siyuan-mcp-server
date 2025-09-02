@@ -27,7 +27,7 @@ const siyuanClient = createSiyuanClient({
 export class ListNotebooksTool extends StandardTool {
   constructor() {
     const config: ToolConfig = {
-      name: 'siyuan-local/list_notebooks',
+      name: 'list_notebooks',
       description: '列出所有思源笔记本，返回笔记本的基本信息包括ID、名称、图标等',
       version: '1.0.0',
       category: 'notebook',
@@ -106,7 +106,7 @@ export class ListNotebooksTool extends StandardTool {
 export class CreateDocumentTool extends StandardTool {
   constructor() {
     const config: ToolConfig = {
-      name: 'siyuan-local/create_document',
+      name: 'create_document',
       description: '在指定笔记本中创建新文档，支持Markdown格式内容',
       version: '1.0.0',
       category: 'document',
@@ -238,7 +238,7 @@ export class CreateDocumentTool extends StandardTool {
 export class RecursiveSearchTool extends StandardTool {
   constructor() {
     const config: ToolConfig = {
-      name: 'siyuan-local/recursive_search',
+      name: 'recursive_search',
       description: '递归搜索思源笔记内容，支持多层级文档遍历和深度搜索，提供丰富的搜索选项',
       version: '1.0.0',
       category: 'search',
@@ -410,7 +410,7 @@ export class RecursiveSearchTool extends StandardTool {
 export class BatchReadDocumentsTool extends StandardTool {
   constructor() {
     const config: ToolConfig = {
-      name: 'siyuan-local/batch_read_all',
+      name: 'batch_read_all',
       description: '批量读取笔记本内所有文档，支持并发处理和性能优化，适合大量文档的批量操作',
       version: '1.0.0',
       category: 'document',

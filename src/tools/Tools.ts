@@ -84,7 +84,7 @@ export class MergedTools {
     return [
       // ==================== 标准工具 ====================
       {
-        name: 'siyuan-local/list_notebooks',
+        name: 'list_notebooks',
         description: '列出所有思源笔记本',
         inputSchema: {
           type: 'object',
@@ -93,7 +93,7 @@ export class MergedTools {
         }
       },
       {
-        name: 'siyuan-local/create_document',
+        name: 'create_document',
         description: '在指定笔记本中创建新文档',
         inputSchema: {
           type: 'object',
@@ -106,7 +106,7 @@ export class MergedTools {
         }
       },
       {
-        name: 'siyuan-local/search_content',
+        name: 'search_content',
         description: '搜索思源笔记内容',
         inputSchema: {
           type: 'object',
@@ -118,7 +118,7 @@ export class MergedTools {
         }
       },
       {
-        name: 'siyuan-local/create_notebook',
+        name: 'create_notebook',
         description: '创建新的思源笔记本',
         inputSchema: {
           type: 'object',
@@ -130,7 +130,7 @@ export class MergedTools {
         }
       },
       {
-        name: 'siyuan-local/create_subdocument',
+        name: 'create_subdocument',
         description: '在指定文档下创建子文档',
         inputSchema: {
           type: 'object',
@@ -464,31 +464,31 @@ export class MergedTools {
     });
 
     // 如果被拦截，返回拦截结果
-    if (!interceptionResult.shouldProceed) {
+    if (!interceptionResult.allowed) {
       return createStandardResponse(
         false,
-        interceptionResult.response?.error || '工具调用被拦截',
+        interceptionResult.errors.join('; ') || '工具调用被拦截',
         null,
-        interceptionResult.response?.error
+        interceptionResult.errors.join('; ')
       );
     }
 
     try {
       switch (toolName) {
         // ==================== 标准工具处理 ====================
-        case 'siyuan-local/list_notebooks':
+        case 'list_notebooks':
           return await this.listNotebooks();
 
-        case 'siyuan-local/create_document':
+        case 'create_document':
           return await this.createDocument(args.notebook, args.title, args.content);
 
-        case 'siyuan-local/search_content':
+        case 'search_content':
           return await this.searchContent(args.query, args.limit);
 
-        case 'siyuan-local/create_notebook':
+        case 'create_notebook':
           return await this.createNotebook(args.name, args.icon);
 
-        case 'siyuan-local/create_subdocument':
+        case 'create_subdocument':
           return await this.createSubDocument(args.notebook, args.parentPath, args.title, args.content);
 
         // ==================== 增强API工具处理 ====================

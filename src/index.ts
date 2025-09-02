@@ -949,11 +949,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
 
       // 合并工具处理 - 包含所有标准工具和增强API工具
-      case 'siyuan-local/list_notebooks':
-      case 'siyuan-local/create_document':
-      case 'siyuan-local/search_content':
-      case 'siyuan-local/create_notebook':
-      case 'siyuan-local/create_subdocument':
+      case 'list_notebooks':
+      case 'create_document':
+      case 'search_content':
+      case 'create_notebook':
+      case 'create_subdocument':
       case 'batch_create_blocks':
       case 'batch_update_blocks':
       case 'batch_delete_blocks':

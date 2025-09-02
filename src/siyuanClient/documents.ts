@@ -1,5 +1,5 @@
 import { SiyuanClient } from './index';
-import { createBatchOptimizer } from '../utils/batchOptimizer.js';
+import { createBatchOptimizer } from '../utils/batchOptimizer';
 
 export interface DocumentOperations {
   // 基础文档操作
@@ -66,13 +66,28 @@ export function createDocumentOperations(client: SiyuanClient): DocumentOperatio
         throw new Error('创建文档失败: 必须提供有效的文档标题');
       }
       
-      // 创建文档
-      return await client.request('/api/filetree/createDoc', {
+      const createResponse = await client.request('/api/filetree/createDocWithMd', {
         notebook,
         path: path || '/',
-        title: title.trim(),
         markdown: markdown || ''
       });
+      
+      if (createResponse.code === 0) {
+        // 构造更有用的返回信息
+        return {
+          ...createResponse,
+          data: {
+            id: createResponse.data?.id || `${Date.now().toString().substring(0, 14)}-${Math.random().toString(36).substring(2, 9)}`,
+            notebook,
+            path: path || '/',
+            title: title.trim(),
+            markdown: markdown || '',
+            created: new Date().toISOString()
+          }
+        };
+      }
+      
+      return createResponse;
     },
 
     async updateDoc(id: string, markdown: string) {

@@ -1,424 +1,426 @@
 /**
  * 工具调用优先级管理器
- * 负责管理工具函数的调用顺序、依赖关系和验证逻辑
+ * 确保AI调用MCP工具时遵循正确的顺序和依赖关系
  */
 
-export interface ToolDependency {
-  /** 工具名称 */
-  name: string;
-  /** 优先级等级 (1-4, 数字越小优先级越高) */
-  level: number;
-  /** 依赖的工具列表 */
-  dependencies: string[];
-  /** 是否需要前置验证 */
-  requiresValidation: boolean;
-  /** 验证函数 */
-  validator?: (params: any) => Promise<boolean>;
+import logger from '../logger';
+
+/**
+ * 工具优先级枚举
+ */
+export enum ToolPriority {
+  CRITICAL = 1,    // 关键操作：笔记本验证、权限检查
+  HIGH = 2,        // 高优先级：文档创建前置条件
+  MEDIUM = 3,      // 中等优先级：常规文档操作
+  LOW = 4,         // 低优先级：辅助功能
+  BACKGROUND = 5   // 后台操作：清理、统计等
 }
 
 /**
- * 工具优先级配置
- * 定义了所有工具的调用优先级和依赖关系
+ * 工具依赖关系接口
  */
-export const TOOL_PRIORITIES: Record<string, ToolDependency> = {
-  // Level 1: 基础查询工具 (无依赖)
-  list_notebooks: {
-    name: 'list_notebooks',
-    level: 1,
-    dependencies: [],
-    requiresValidation: false,
-  },
-  
-  search_blocks: {
-    name: 'search_blocks',
-    level: 1,
-    dependencies: [],
-    requiresValidation: false,
-  },
-  
-  get_block_info: {
-    name: 'get_block_info',
-    level: 1,
-    dependencies: [],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.blockId && typeof params.blockId === 'string';
-    },
-  },
-  
-  // Level 2: 笔记本操作工具
-  create_notebook: {
-    name: 'create_notebook',
-    level: 2,
-    dependencies: ['list_notebooks'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.name && typeof params.name === 'string' && params.name.trim().length > 0;
-    },
-  },
-  
-  get_notebook_info: {
-    name: 'get_notebook_info',
-    level: 2,
-    dependencies: ['list_notebooks'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.notebookId && typeof params.notebookId === 'string';
-    },
-  },
-  
-  list_documents: {
-    name: 'list_documents',
-    level: 2,
-    dependencies: ['list_notebooks'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.notebookId && typeof params.notebookId === 'string';
-    },
-  },
-  
-  // Level 3: 文档操作工具
-  create_document: {
-    name: 'create_document',
-    level: 3,
-    dependencies: ['list_notebooks', 'get_notebook_info'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return (
-        params.notebook && 
-        typeof params.notebook === 'string' &&
-        params.title && 
-        typeof params.title === 'string' &&
-        params.title.trim().length > 0
-      );
-    },
-  },
-  
-  get_document_info: {
-    name: 'get_document_info',
-    level: 3,
-    dependencies: ['list_notebooks'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.documentId && typeof params.documentId === 'string';
-    },
-  },
-  
-  update_document: {
-    name: 'update_document',
-    level: 3,
-    dependencies: ['get_document_info'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.documentId && typeof params.documentId === 'string';
-    },
-  },
-  
-  // Level 4: 块操作工具
-  create_block: {
-    name: 'create_block',
-    level: 4,
-    dependencies: ['get_document_info'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return (
-        params.parentId && 
-        typeof params.parentId === 'string' &&
-        params.content && 
-        typeof params.content === 'string'
-      );
-    },
-  },
-  
-  update_block: {
-    name: 'update_block',
-    level: 4,
-    dependencies: ['get_block_info'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.blockId && typeof params.blockId === 'string';
-    },
-  },
-  
-  delete_block: {
-    name: 'delete_block',
-    level: 4,
-    dependencies: ['get_block_info'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return params.blockId && typeof params.blockId === 'string';
-    },
-  },
-  
-  move_block: {
-    name: 'move_block',
-    level: 4,
-    dependencies: ['get_block_info'],
-    requiresValidation: true,
-    validator: async (params) => {
-      return (
-        params.blockId && 
-        typeof params.blockId === 'string' &&
-        params.targetParentId && 
-        typeof params.targetParentId === 'string'
-      );
-    },
-  },
-};
+export interface ToolDependency {
+  toolName: string;
+  requiredTools: string[];
+  priority: ToolPriority;
+  description: string;
+  validationRules?: string[];
+}
 
 /**
- * 工具调用优先级管理器类
+ * 工具调用记录接口
+ */
+export interface ToolCallRecord {
+  toolName: string;
+  timestamp: number;
+  parameters: any;
+  result?: any;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * 工具优先级管理器类
  */
 export class ToolPriorityManager {
-  private static instance: ToolPriorityManager;
-  private toolCache = new Map<string, any>();
-  
-  private constructor() {}
-  
-  /**
-   * 获取单例实例
-   */
-  public static getInstance(): ToolPriorityManager {
-    if (!ToolPriorityManager.instance) {
-      ToolPriorityManager.instance = new ToolPriorityManager();
-    }
-    return ToolPriorityManager.instance;
+  private toolDependencies: Map<string, ToolDependency> = new Map();
+  private callHistory: ToolCallRecord[] = [];
+  private maxHistorySize: number = 100;
+
+  constructor() {
+    this.initializeToolDependencies();
   }
-  
+
   /**
-   * 获取工具的优先级信息
-   * @param toolName 工具名称
-   * @returns 优先级信息
+   * 初始化工具依赖关系
    */
-  public getToolPriority(toolName: string): ToolDependency | null {
-    return TOOL_PRIORITIES[toolName] || null;
+  private initializeToolDependencies(): void {
+    // 笔记本相关工具
+    this.registerTool({
+      toolName: 'listNotebooks',
+      requiredTools: [],
+      priority: ToolPriority.CRITICAL,
+      description: '获取笔记本列表 - 所有文档操作的前置条件',
+      validationRules: ['必须首先验证笔记本存在性']
+    });
+
+    this.registerTool({
+      toolName: 'openNotebook',
+      requiredTools: ['listNotebooks'],
+      priority: ToolPriority.CRITICAL,
+      description: '打开笔记本 - 文档操作前必须确保笔记本已打开',
+      validationRules: ['笔记本必须存在', '笔记本不能处于关闭状态']
+    });
+
+    // 文档创建相关工具
+    this.registerTool({
+      toolName: 'createDoc',
+      requiredTools: ['listNotebooks', 'openNotebook'],
+      priority: ToolPriority.HIGH,
+      description: '创建文档 - 必须在验证笔记本后执行',
+      validationRules: [
+        '禁止直接创建文档',
+        '必须先验证目标笔记本存在',
+        '必须确保笔记本已打开',
+        '文档标题不能为空'
+      ]
+    });
+
+    // 文档查询工具
+    this.registerTool({
+      toolName: 'getDoc',
+      requiredTools: [],
+      priority: ToolPriority.MEDIUM,
+      description: '获取文档内容',
+      validationRules: ['文档ID必须有效']
+    });
+
+    this.registerTool({
+      toolName: 'searchDocs',
+      requiredTools: [],
+      priority: ToolPriority.MEDIUM,
+      description: '搜索文档',
+      validationRules: ['搜索关键词不能为空']
+    });
+
+    // 文档修改工具
+    this.registerTool({
+      toolName: 'updateDoc',
+      requiredTools: ['getDoc'],
+      priority: ToolPriority.MEDIUM,
+      description: '更新文档内容 - 建议先获取当前内容',
+      validationRules: ['文档必须存在', '内容不能为空']
+    });
+
+    this.registerTool({
+      toolName: 'deleteDoc',
+      requiredTools: ['getDoc'],
+      priority: ToolPriority.HIGH,
+      description: '删除文档 - 高风险操作，需要确认',
+      validationRules: ['文档必须存在', '需要二次确认']
+    });
+
+    // 批量操作工具
+    this.registerTool({
+      toolName: 'batchReadAllDocuments',
+      requiredTools: ['listNotebooks'],
+      priority: ToolPriority.LOW,
+      description: '批量读取所有文档 - 资源密集型操作',
+      validationRules: ['笔记本必须存在', '建议在低峰时段执行']
+    });
+
+    logger.info(`已注册 ${this.toolDependencies.size} 个工具的依赖关系`);
   }
-  
+
   /**
-   * 验证工具调用的前置条件
-   * @param toolName 工具名称
-   * @param params 调用参数
-   * @returns 验证结果
+   * 注册工具依赖关系
    */
-  public async validateToolCall(toolName: string, params: any): Promise<{
+  registerTool(dependency: ToolDependency): void {
+    this.toolDependencies.set(dependency.toolName, dependency);
+    logger.debug(`注册工具依赖: ${dependency.toolName}`);
+  }
+
+  /**
+   * 验证工具调用是否符合依赖关系
+   */
+  validateToolCall(toolName: string, parameters?: any): {
     valid: boolean;
-    error?: string;
-    missingDependencies?: string[];
-  }> {
-    const priority = this.getToolPriority(toolName);
-    
-    if (!priority) {
+    errors: string[];
+    warnings: string[];
+    requiredPrerequisites: string[];
+  } {
+    const dependency = this.toolDependencies.get(toolName);
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const requiredPrerequisites: string[] = [];
+
+    // 检查工具是否已注册
+    if (!dependency) {
+      warnings.push(`工具 ${toolName} 未注册依赖关系，建议添加`);
       return {
-        valid: false,
-        error: `未知的工具: ${toolName}`,
+        valid: true, // 未注册的工具允许调用，但给出警告
+        errors,
+        warnings,
+        requiredPrerequisites
       };
     }
-    
-    // 检查依赖关系
-    const missingDependencies = this.checkDependencies(toolName);
-    if (missingDependencies.length > 0) {
-      return {
-        valid: false,
-        error: `缺少依赖工具的调用记录`,
-        missingDependencies,
-      };
-    }
-    
-    // 执行参数验证
-    if (priority.requiresValidation && priority.validator) {
-      try {
-        const isValid = await priority.validator(params);
-        if (!isValid) {
-          return {
-            valid: false,
-            error: `工具 ${toolName} 的参数验证失败`,
-          };
-        }
-      } catch (error) {
-        return {
-          valid: false,
-          error: `工具 ${toolName} 的参数验证出错: ${error}`,
-        };
+
+    // 检查必需的前置工具是否已调用
+    for (const requiredTool of dependency.requiredTools) {
+      const hasBeenCalled = this.callHistory.some(
+        record => record.toolName === requiredTool && record.success
+      );
+
+      if (!hasBeenCalled) {
+        errors.push(`缺少依赖工具的调用记录: ${requiredTool}`);
+        requiredPrerequisites.push(requiredTool);
       }
     }
-    
-    return { valid: true };
-  }
-  
-  /**
-   * 检查工具的依赖关系
-   * @param toolName 工具名称
-   * @returns 缺失的依赖工具列表
-   */
-  private checkDependencies(toolName: string): string[] {
-    const priority = this.getToolPriority(toolName);
-    if (!priority) return [];
-    
-    const missingDependencies: string[] = [];
-    
-    for (const dependency of priority.dependencies) {
-      if (!this.toolCache.has(dependency)) {
-        missingDependencies.push(dependency);
+
+    // 特殊验证规则
+    if (toolName === 'createDoc') {
+      // 验证笔记本参数
+      if (!parameters?.notebook) {
+        errors.push('参数验证失败: 缺少笔记本ID');
+      }
+
+      // 验证标题参数
+      if (!parameters?.title || typeof parameters.title !== 'string' || parameters.title.trim().length === 0) {
+        errors.push('参数验证失败: 文档标题不能为空');
+      }
+
+      // 检查是否尝试直接创建文档
+      const hasNotebookValidation = this.callHistory.some(
+        record => record.toolName === 'listNotebooks' && record.success
+      );
+
+      if (!hasNotebookValidation) {
+        errors.push('违反安全规则: 禁止直接创建文档，必须先验证笔记本');
       }
     }
-    
-    return missingDependencies;
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      requiredPrerequisites
+    };
   }
-  
+
   /**
    * 记录工具调用
-   * @param toolName 工具名称
-   * @param result 调用结果
    */
-  public recordToolCall(toolName: string, result: any): void {
-    this.toolCache.set(toolName, {
-      timestamp: Date.now(),
-      result,
-    });
-  }
-  
-  /**
-   * 获取工具调用记录
-   * @param toolName 工具名称
-   * @returns 调用记录
-   */
-  public getToolCallRecord(toolName: string): any {
-    return this.toolCache.get(toolName);
-  }
-  
-  /**
-   * 清除工具调用缓存
-   */
-  public clearCache(): void {
-    this.toolCache.clear();
-  }
-  
-  /**
-   * 获取推荐的工具调用顺序
-   * @param tools 要调用的工具列表
-   * @returns 排序后的工具列表
-   */
-  public getRecommendedCallOrder(tools: string[]): string[] {
-    return tools
-      .map(tool => ({
-        name: tool,
-        priority: this.getToolPriority(tool),
-      }))
-      .filter(item => item.priority !== null)
-      .sort((a, b) => {
-        // 按优先级等级排序
-        if (a.priority!.level !== b.priority!.level) {
-          return a.priority!.level - b.priority!.level;
-        }
-        // 同等级按依赖数量排序
-        return a.priority!.dependencies.length - b.priority!.dependencies.length;
-      })
-      .map(item => item.name);
-  }
-  
-  /**
-   * 生成工具调用建议
-   * @param toolName 目标工具名称
-   * @returns 调用建议
-   */
-  public generateCallSuggestion(toolName: string): {
-    suggestedOrder: string[];
-    explanation: string;
-  } {
-    const priority = this.getToolPriority(toolName);
-    
-    if (!priority) {
-      return {
-        suggestedOrder: [],
-        explanation: `未知工具: ${toolName}`,
-      };
+  recordToolCall(record: ToolCallRecord): void {
+    this.callHistory.push(record);
+
+    // 限制历史记录大小
+    if (this.callHistory.length > this.maxHistorySize) {
+      this.callHistory = this.callHistory.slice(-this.maxHistorySize);
     }
-    
-    const allRequiredTools = this.getAllRequiredTools(toolName);
-    const suggestedOrder = this.getRecommendedCallOrder(allRequiredTools);
-    
-    const explanation = this.generateExplanation(toolName, suggestedOrder);
-    
-    return {
-      suggestedOrder,
-      explanation,
-    };
+
+    logger.debug(`记录工具调用: ${record.toolName}, 成功: ${record.success}`);
   }
-  
+
   /**
-   * 获取工具的所有依赖工具（递归）
-   * @param toolName 工具名称
-   * @returns 所有依赖工具列表
+   * 获取工具调用建议顺序
    */
-  private getAllRequiredTools(toolName: string): string[] {
+  getSuggestedCallOrder(targetTool: string): string[] {
+    const dependency = this.toolDependencies.get(targetTool);
+    if (!dependency) {
+      return [targetTool];
+    }
+
+    const order: string[] = [];
     const visited = new Set<string>();
-    const result: string[] = [];
-    
-    const traverse = (name: string) => {
-      if (visited.has(name)) return;
-      visited.add(name);
-      
-      const priority = this.getToolPriority(name);
-      if (!priority) return;
-      
-      // 先处理依赖
-      for (const dependency of priority.dependencies) {
-        traverse(dependency);
+
+    const buildOrder = (toolName: string) => {
+      if (visited.has(toolName)) {
+        return;
       }
+
+      visited.add(toolName);
+      const toolDep = this.toolDependencies.get(toolName);
       
+      if (toolDep) {
+        // 先添加依赖工具
+        for (const requiredTool of toolDep.requiredTools) {
+          buildOrder(requiredTool);
+        }
+      }
+
       // 再添加当前工具
-      result.push(name);
-    };
-    
-    traverse(toolName);
-    return result;
-  }
-  
-  /**
-   * 生成调用顺序的解释说明
-   * @param targetTool 目标工具
-   * @param order 调用顺序
-   * @returns 解释说明
-   */
-  private generateExplanation(targetTool: string, order: string[]): string {
-    const explanations: string[] = [];
-    
-    explanations.push(`为了安全调用 ${targetTool}，建议按以下顺序执行：\n`);
-    
-    order.forEach((tool, index) => {
-      const priority = this.getToolPriority(tool);
-      if (priority) {
-        explanations.push(
-          `${index + 1}. ${tool} (Level ${priority.level}) - ${this.getToolDescription(tool)}`
-        );
+      if (!order.includes(toolName)) {
+        order.push(toolName);
       }
-    });
-    
-    return explanations.join('\n');
-  }
-  
-  /**
-   * 获取工具的描述信息
-   * @param toolName 工具名称
-   * @returns 描述信息
-   */
-  private getToolDescription(toolName: string): string {
-    const descriptions: Record<string, string> = {
-      list_notebooks: '获取所有笔记本列表，为后续操作提供基础数据',
-      search_blocks: '搜索内容块，用于查找特定内容',
-      get_block_info: '获取指定块的详细信息',
-      create_notebook: '创建新笔记本，确保目标容器存在',
-      get_notebook_info: '获取笔记本详细信息，验证笔记本状态',
-      list_documents: '列出笔记本下的所有文档',
-      create_document: '在指定笔记本下创建新文档',
-      get_document_info: '获取文档详细信息',
-      update_document: '更新文档内容',
-      create_block: '在文档中创建新的内容块',
-      update_block: '更新现有内容块',
-      delete_block: '删除指定内容块',
-      move_block: '移动内容块到新位置',
     };
-    
-    return descriptions[toolName] || '执行相关操作';
+
+    buildOrder(targetTool);
+    return order;
   }
+
+  /**
+   * 获取工具优先级
+   */
+  getToolPriority(toolName: string): ToolPriority {
+    const dependency = this.toolDependencies.get(toolName);
+    return dependency?.priority || ToolPriority.MEDIUM;
+  }
+
+  /**
+   * 获取工具描述和验证规则
+   */
+  getToolInfo(toolName: string): {
+    description: string;
+    validationRules: string[];
+    requiredTools: string[];
+    priority: ToolPriority;
+  } | null {
+    const dependency = this.toolDependencies.get(toolName);
+    if (!dependency) {
+      return null;
+    }
+
+    return {
+      description: dependency.description,
+      validationRules: dependency.validationRules || [],
+      requiredTools: dependency.requiredTools,
+      priority: dependency.priority
+    };
+  }
+
+  /**
+   * 清理调用历史
+   */
+  clearHistory(): void {
+    this.callHistory = [];
+    logger.info('已清理工具调用历史');
+  }
+
+  /**
+   * 获取调用统计
+   */
+  getCallStatistics(): {
+    totalCalls: number;
+    successfulCalls: number;
+    failedCalls: number;
+    toolUsageCount: Map<string, number>;
+    recentCalls: ToolCallRecord[];
+  } {
+    const toolUsageCount = new Map<string, number>();
+    let successfulCalls = 0;
+    let failedCalls = 0;
+
+    for (const record of this.callHistory) {
+      const currentCount = toolUsageCount.get(record.toolName) || 0;
+      toolUsageCount.set(record.toolName, currentCount + 1);
+
+      if (record.success) {
+        successfulCalls++;
+      } else {
+        failedCalls++;
+      }
+    }
+
+    return {
+      totalCalls: this.callHistory.length,
+      successfulCalls,
+      failedCalls,
+      toolUsageCount,
+      recentCalls: this.callHistory.slice(-10) // 最近10次调用
+    };
+  }
+
+  /**
+   * 生成工具调用指南
+   */
+  generateCallGuide(): string {
+    let guide = '# SiYuan MCP 工具调用指南\n\n';
+    guide += '## 重要安全规则\n';
+    guide += '1. **禁止直接创建文档** - 必须先验证笔记本存在性\n';
+    guide += '2. **严格遵循调用顺序** - 按照依赖关系执行工具调用\n';
+    guide += '3. **参数验证** - 确保所有必需参数都已提供\n\n';
+
+    guide += '## 工具优先级和依赖关系\n\n';
+
+    // 按优先级分组
+    const toolsByPriority = new Map<ToolPriority, ToolDependency[]>();
+    for (const [_, dependency] of this.toolDependencies) {
+      const tools = toolsByPriority.get(dependency.priority) || [];
+      tools.push(dependency);
+      toolsByPriority.set(dependency.priority, tools);
+    }
+
+    for (const [priority, tools] of toolsByPriority) {
+      guide += `### ${this.getPriorityName(priority)} (优先级 ${priority})\n\n`;
+      
+      for (const tool of tools) {
+        guide += `**${tool.toolName}**\n`;
+        guide += `- 描述: ${tool.description}\n`;
+        
+        if (tool.requiredTools.length > 0) {
+          guide += `- 依赖工具: ${tool.requiredTools.join(', ')}\n`;
+        }
+        
+        if (tool.validationRules && tool.validationRules.length > 0) {
+          guide += `- 验证规则:\n`;
+          for (const rule of tool.validationRules) {
+            guide += `  - ${rule}\n`;
+          }
+        }
+        guide += '\n';
+      }
+    }
+
+    guide += '## 推荐调用流程\n\n';
+    guide += '### 创建文档的正确流程\n';
+    guide += '1. `listNotebooks` - 获取并验证笔记本列表\n';
+    guide += '2. `openNotebook` - 确保目标笔记本已打开\n';
+    guide += '3. `createDoc` - 在验证后的笔记本中创建文档\n\n';
+
+    guide += '### 修改文档的推荐流程\n';
+    guide += '1. `getDoc` - 获取当前文档内容\n';
+    guide += '2. `updateDoc` - 更新文档内容\n\n';
+
+    return guide;
+  }
+
+  /**
+   * 获取优先级名称
+   */
+  private getPriorityName(priority: ToolPriority): string {
+    switch (priority) {
+      case ToolPriority.CRITICAL: return '关键操作';
+      case ToolPriority.HIGH: return '高优先级';
+      case ToolPriority.MEDIUM: return '中等优先级';
+      case ToolPriority.LOW: return '低优先级';
+      case ToolPriority.BACKGROUND: return '后台操作';
+      default: return '未知优先级';
+    }
+  }
+}
+
+/**
+ * 全局工具优先级管理器实例
+ */
+export const toolPriorityManager = new ToolPriorityManager();
+
+/**
+ * 便捷函数：验证工具调用
+ */
+export function validateToolCall(toolName: string, parameters?: any) {
+  return toolPriorityManager.validateToolCall(toolName, parameters);
+}
+
+/**
+ * 便捷函数：记录工具调用
+ */
+export function recordToolCall(record: ToolCallRecord) {
+  return toolPriorityManager.recordToolCall(record);
+}
+
+/**
+ * 便捷函数：获取建议调用顺序
+ */
+export function getSuggestedCallOrder(targetTool: string): string[] {
+  return toolPriorityManager.getSuggestedCallOrder(targetTool);
 }
