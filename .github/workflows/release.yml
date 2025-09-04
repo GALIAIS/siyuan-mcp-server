@@ -69,8 +69,18 @@ jobs:
           # 全局安装
           npm install -g siyuan-mcp-server@${VERSION}
           
-          # 启动服务
-          siyuan-mcp-server
+          # 使用
+          {
+            "mcpServers": {
+              "siyuan": {
+                "command": "npx",
+                "args": ["siyuan-mcp-server"],
+                "env": {
+                  "SIYUAN_API_TOKEN": "your-api-token"
+                }
+              }
+            }
+          }
           \`\`\`
           
           ### 🔗 相关链接
