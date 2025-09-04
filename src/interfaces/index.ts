@@ -18,11 +18,14 @@ export interface APIResponse<T = any> {
   data: T;
 }
 
-// 分页接口
+// 分页接口（统一版本）
 export interface PaginationOptions {
   page?: number;
   pageSize?: number;
+  offset?: number;
+  limit?: number;
   orderBy?: string;
+  sortBy?: 'created' | 'updated' | 'name' | 'relevance';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -83,7 +86,6 @@ export interface BatchResult<T = any> {
     total: number;
     successful: number;
     failed: number;
-    executionTime: number;
   };
 }
 
@@ -169,21 +171,7 @@ export interface PerformanceMetrics {
   documentsProcessed?: number;
 }
 
-// 缓存配置接口
-export interface CacheConfig {
-  enabled: boolean;
-  ttl: number;
-  maxSize: number;
-  cleanupInterval: number;
-}
-
-// 日志级别枚举
-export enum LogLevel {
-  ERROR = 'error',
-  WARN = 'warn',
-  INFO = 'info',
-  DEBUG = 'debug'
-}
+// 移除重复的 CacheConfig 和 LogLevel 定义，使用各自模块中的定义
 
 // 操作结果接口
 export interface OperationResult<T = any> {
@@ -228,102 +216,6 @@ export interface ModuleStatus {
 // ============================================================================
 // 增强的 SiYuan 类型定义 (原 enhanced-siyuan-types.ts 内容)
 // ============================================================================
-
-// 基础类型定义
-export interface SiyuanBlock {
-  id: string;
-  content: string;
-  markdown?: string;
-  type: string;
-  created: string;
-  updated: string;
-}
-
-export interface SiyuanNotebook {
-  id: string;
-  name: string;
-  icon?: string;
-  sort?: number;
-}
-
-// ==================== 批量操作相关类型 ====================
-
-/**
- * 批量创建块请求接口
- */
-export interface BatchCreateBlocksRequest {
-  /** 批量操作数组 */
-  operations: Array<{
-    /** 父块ID */
-    parentID: string;
-    /** 数据类型 */
-    dataType: string;
-    /** 块内容 */
-    data: string;
-    /** 插入位置 */
-    position?: 'before' | 'after';
-    /** 前一个块的ID（用于精确定位） */
-    previousID?: string;
-  }>;
-}
-
-/**
- * 批量创建块响应接口
- */
-export interface BatchCreateBlocksResponse {
-  code: number;
-  msg: string;
-  data: Array<{
-    /** 操作是否成功 */
-    success: boolean;
-    /** 创建的块ID（成功时） */
-    blockID?: string;
-    /** 错误信息（失败时） */
-    error?: string;
-    /** 原始操作在数组中的索引 */
-    originalIndex: number;
-  }>;
-}
-
-/**
- * 批量更新块请求接口
- */
-export interface BatchUpdateBlocksRequest {
-  /** 更新操作数组 */
-  updates: Array<{
-    /** 块ID */
-    id: string;
-    /** 新的块内容 */
-    data: string;
-    /** 数据类型（可选） */
-    dataType?: string;
-  }>;
-}
-
-/**
- * 批量更新块响应接口
- */
-export interface BatchUpdateBlocksResponse {
-  code: number;
-  msg: string;
-  data: {
-    /** 总操作数 */
-    total: number;
-    /** 成功数量 */
-    success: number;
-    /** 失败数量 */
-    failed: number;
-    /** 详细结果 */
-    details: Array<{
-      /** 块ID */
-      id: string;
-      /** 是否成功 */
-      success: boolean;
-      /** 错误信息（失败时） */
-      error?: string;
-    }>;
-  };
-}
 
 // ==================== 标签管理相关类型 ====================
 

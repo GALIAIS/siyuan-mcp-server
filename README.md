@@ -50,7 +50,7 @@
   "mcpServers": {
     "siyuan": {
       "command": "npx",
-      "args": ["mcp-server-siyuan"],
+      "args": ["siyuan-mcp-server"],
       "env": {
         "SIYUAN_API_TOKEN": "your-api-token"
       }

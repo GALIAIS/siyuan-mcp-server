@@ -1,6 +1,6 @@
 import logger from '../logger';
 
-export async function checkSystemHealth(): Promise<{ status: string; detail: string }> {
+async function checkSystemHealth(): Promise<{ status: string; detail: string }> {
   const base = process.env.SIYUAN_BASE_URL;
   const token = process.env.SIYUAN_TOKEN;
   

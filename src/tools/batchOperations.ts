@@ -1,27 +1,8 @@
 import { SiyuanClient } from '../siyuanClient';
 import logger from '../logger';
+import { BatchResult, CreateBlockRequest, UpdateBlockRequest } from '../interfaces/index.js';
 
-export interface BatchResult<T = any> {
-  success: T[];
-  failed: Array<{ index: number; error: string; input: any }>;
-  summary: {
-    total: number;
-    successful: number;
-    failed: number;
-    successRate: number;
-  };
-}
-
-export interface CreateBlockRequest {
-  content: string;
-  parentID?: string;
-  previousID?: string;
-}
-
-export interface UpdateBlockRequest {
-  id: string;
-  content: string;
-}
+// 使用统一的接口定义，避免重复
 
 export interface CreateDocRequest {
   notebook: string;
@@ -222,7 +203,7 @@ export class BatchOperations {
         total,
         successful,
         failed: failedCount,
-        successRate: successful / total
+
       }
     };
   }

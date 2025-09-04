@@ -1,5 +1,6 @@
 import { createSiyuanClient } from '../siyuanClient';
 import logger from '../logger';
+import { PaginationOptions } from '../interfaces/index.js';
 
 // MCP资源类型定义
 export interface MCPResource {
@@ -23,13 +24,7 @@ export interface ResourceFilter {
   };
 }
 
-// 分页参数
-export interface PaginationOptions {
-  offset?: number;
-  limit?: number;
-  sortBy?: 'created' | 'updated' | 'name' | 'relevance';
-  sortOrder?: 'asc' | 'desc';
-}
+
 
 // 资源发现结果
 export interface ResourceDiscoveryResult {
@@ -253,7 +248,7 @@ export class ResourceDirectory {
           
           return { resources, total: searchResults.length };
         } catch (error) {
-          console.error('搜索块时出错:', error);
+          // 完全禁用日志输出 - 用户不需要任何日志
           return { resources: [], total: 0 };
         }
       }

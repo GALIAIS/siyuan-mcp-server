@@ -6,14 +6,14 @@
  * @since 1.0.0
  */
 
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { createSiyuanClient } from '../siyuanClient/index.js';
-import type { SiyuanClient } from '../siyuanClient/index.js';
-import { BatchService } from '../services/batch-service.js';
-import { TagService } from '../services/tag-service.js';
+import { Tool } from '@modelcontextprotocol/sdk/types';
+import { createSiyuanClient } from '../siyuanClient/index';
+import type { SiyuanClient } from '../siyuanClient/index';
+import { BatchService } from '../services/batch-service';
+import { TagService } from '../services/tag-service';
 
-import { ReferenceService } from '../services/reference-service.js';
-import { AdvancedSearchService } from '../services/advanced-search-service.js';
+import { ReferenceService } from '../services/reference-service';
+import { AdvancedSearchService } from '../services/advanced-search-service';
 
 // 创建客户端实例
 const siyuanClient = createSiyuanClient({
@@ -604,7 +604,7 @@ export class MergedTools {
         }
       );
     } catch (error: any) {
-      console.error('获取笔记本列表错误:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return createStandardResponse(
         false,
         "获取笔记本列表时发生错误",
@@ -666,7 +666,7 @@ export class MergedTools {
         );
       }
     } catch (error: any) {
-      console.error('创建文档错误:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return createStandardResponse(
         false,
         "创建文档时发生错误",
@@ -734,7 +734,7 @@ export class MergedTools {
         }
       );
     } catch (error: any) {
-      console.error('搜索内容错误:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return createStandardResponse(
         false,
         "搜索时发生错误",
@@ -790,7 +790,7 @@ export class MergedTools {
         );
       }
     } catch (error: any) {
-      console.error('创建笔记本错误:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return createStandardResponse(
         false,
         "创建笔记本时发生错误",
@@ -855,7 +855,7 @@ export class MergedTools {
         );
       }
     } catch (error: any) {
-      console.error('创建子文档错误:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return createStandardResponse(
         false,
         "创建子文档时发生错误",
@@ -880,7 +880,7 @@ export async function handleMergedTool(name: string, args: any): Promise<any> {
     const result = await mergedTools.handleToolCall(name, args || {});
     return convertToMCPFormat(result);
   } catch (error: any) {
-    console.error('工具处理错误:', error);
+    // 完全禁用日志输出 - 用户不需要任何日志
     
     const errorResult = createStandardResponse(
       false,

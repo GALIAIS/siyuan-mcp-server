@@ -29,7 +29,7 @@ export class SiyuanPortDiscovery {
    */
   private async readPortFromConfigFile(): Promise<number | null> {
     try {
-      logger.info('尝试从port.json文件读取端口信息...');
+      logger.silentInfo('尝试从port.json文件读取端口信息...');
       
       // 构建port.json文件路径
       const homeDir = os.homedir();
@@ -37,7 +37,7 @@ export class SiyuanPortDiscovery {
       
       // 检查文件是否存在
       if (!fs.existsSync(portJsonPath)) {
-        logger.info('port.json文件不存在');
+        logger.silentInfo('port.json文件不存在');
         return null;
       }
       
@@ -49,7 +49,7 @@ export class SiyuanPortDiscovery {
       const ports = Object.values(portData) as string[];
       
       if (ports.length === 0) {
-        logger.info('port.json文件中没有端口信息');
+        logger.silentInfo('port.json文件中没有端口信息');
         return null;
       }
       
@@ -58,18 +58,18 @@ export class SiyuanPortDiscovery {
         const port = parseInt(portStr);
         if (isNaN(port)) continue;
         
-        logger.info(`验证port.json中的端口: ${port}`);
+        logger.silentInfo(`验证port.json中的端口: ${port}`);
         
         if (await this.isValidSiyuanPort(port)) {
-          logger.info(`port.json中的端口 ${port} 验证成功`);
+          logger.silentInfo(`port.json中的端口 ${port} 验证成功`);
           return port;
         }
       }
       
-      logger.info('port.json中的端口都无法连接');
+      logger.silentInfo('port.json中的端口都无法连接');
       return null;
     } catch (error) {
-      logger.warn('读取port.json文件失败:', error);
+      logger.error('读取port.json文件失败:', error);
       return null;
     }
   }

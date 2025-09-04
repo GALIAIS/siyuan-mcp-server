@@ -3,13 +3,13 @@
  * 提供向后兼容的API接口
  */
 
-import logger from '../logger.js';
-import { createBlockOperations, BlockOperations } from './blocks.js';
-import { createDocumentOperations, DocumentOperations } from './documents.js';
-import { createAssetOperations, AssetOperations } from './assets.js';
-import { createPortDiscovery } from '../utils/portDiscovery.js';
-import { BatchOperations } from '../tools/batchOperations.js';
-import { withRetry } from '../utils/retry.js';
+import logger from '../logger';
+import { createBlockOperations, BlockOperations } from './blocks';
+import { createDocumentOperations, DocumentOperations } from './documents';
+import { createAssetOperations, AssetOperations } from './assets';
+import { createPortDiscovery } from '../utils/portDiscovery';
+import { BatchOperations } from '../tools/batchOperations';
+import { withRetry } from '../utils/retry';
 import axios, { AxiosInstance } from 'axios';
 
 export interface SiyuanClientConfig {
@@ -71,35 +71,37 @@ export interface SiyuanClient {
 
 export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
   let { baseURL, token, autoDiscoverPort = true } = config;
-
-  // 自动发现端口
-  if (autoDiscoverPort && (!baseURL || baseURL === '' || baseURL.includes('127.0.0.1:6806'))) {
-    const portDiscovery = createPortDiscovery(config.token);
-    
-    // 异步发现端口并更新 baseURL
-    portDiscovery.autoDiscover().then(result => {
-      if (result) {
-        baseURL = result.baseURL;
-        // 更新 httpClient 的 baseURL
-        httpClient.defaults.baseURL = result.baseURL;
-        logger.info(`端口发现成功，使用端口: ${result.port}`);
-      } else {
-        logger.warn('端口发现失败，请确保思源笔记正在运行');
-      }
-    }).catch(error => {
-      logger.error('端口发现过程中出错:', error);
-    });
-  }
-
-  // 创建HTTP客户端
+  
+  // 创建HTTP客户端（先使用默认配置）
   const httpClient = axios.create({
-    baseURL: baseURL || 'http://127.0.0.1:6806', // 临时默认值，将被端口发现替换
+    baseURL: baseURL || undefined,
     timeout: 30000,
     headers: {
       'Authorization': `Token ${token}`,
       'Content-Type': 'application/json'
     }
   });
+
+  // 自动发现端口（优化版）
+  if (autoDiscoverPort && (!baseURL || baseURL === '' || undefined)) {
+    const portDiscovery = createPortDiscovery(config.token);
+    
+    // 异步发现端口并更新 httpClient 的 baseURL
+    portDiscovery.autoDiscover().then(result => {
+      if (result) {
+        baseURL = result.baseURL;
+        httpClient.defaults.baseURL = result.baseURL;
+        logger.info(`端口发现成功，使用端口: ${result.port}，URL: ${result.baseURL}`);
+      } else {
+        logger.warn('端口发现失败，请确保思源笔记正在运行。将尝试使用默认端口 6806');
+      }
+    }).catch(error => {
+      logger.error('端口发现过程中出错:', error);
+      logger.warn('将尝试使用默认端口 6806 连接');
+    });
+  } else if (baseURL) {
+    logger.info(`使用自定义思源笔记 URL: ${baseURL}`);
+  }
 
   // 通用请求方法
   const request = async (endpoint: string, data?: any): Promise<any> => {
@@ -121,14 +123,25 @@ export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
   const blocks = createBlockOperations({ request } as any);
   const documents = createDocumentOperations({ request } as any);
   const assets = createAssetOperations({ request } as any);
-  const batch = new BatchOperations({ request } as any);
+  
+  // 先创建client对象的基本结构
+  const clientBase: Partial<SiyuanClient> = {
+    request,
+    blocks,
+    documents,
+    assets,
+    // 其他方法会在后面添加
+  };
+  
+  // 然后创建batch实例，传入完整的client引用
+  const batch = new BatchOperations(clientBase as SiyuanClient);
 
   const client: SiyuanClient = {
     request,
     
     async checkHealth() {
       try {
-        const response = await request('/api/system/getConf');
+        const response = await request('/api/system/version');
         return {
           status: response.code === 0 ? 'healthy' : 'unhealthy',
           detail: response

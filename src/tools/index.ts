@@ -9,7 +9,7 @@ export interface ToolDefinition {
   inputSchema: any;
 }
 
-export const DATA_TOOLS: ToolDefinition[] = [
+const DATA_TOOLS: ToolDefinition[] = [
   {
     name: 'notes.read',
     description: '读取指定ID的笔记块',

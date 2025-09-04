@@ -184,7 +184,7 @@ export class ReferenceService {
         type: this.detectReferenceType(row.source_context, row.target_id)
       }));
     } catch (error) {
-      console.error('获取出链引用失败:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return [];
     }
   }
@@ -218,7 +218,7 @@ export class ReferenceService {
         type: this.detectReferenceType(row.source_content, blockID)
       }));
     } catch (error) {
-      console.error('获取入链引用失败:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return [];
     }
   }

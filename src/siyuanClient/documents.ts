@@ -229,7 +229,7 @@ export function createDocumentOperations(client: SiyuanClient): DocumentOperatio
             documentTree.push(treeNode);
           }
         } catch (error) {
-          console.warn(`获取文档 ${docId} 信息失败:`, error);
+          // 完全禁用日志输出 - 用户不需要任何日志
         }
       }
 
@@ -262,7 +262,7 @@ export function createDocumentOperations(client: SiyuanClient): DocumentOperatio
 
         return childDocs;
       } catch (error) {
-        console.warn(`获取子文档失败 (parent: ${parentId}):`, error);
+        // 完全禁用日志输出 - 用户不需要任何日志: ${error}\n`);
         return [];
       }
     },
@@ -281,7 +281,7 @@ export function createDocumentOperations(client: SiyuanClient): DocumentOperatio
             const doc = await this.getDoc(id);
             return doc.code === 0 ? { id, ...doc.data } : null;
           } catch (error) {
-            console.warn(`批量获取文档 ${id} 失败:`, error);
+            // 完全禁用日志输出 - 用户不需要任何日志
             return null;
           }
         });
@@ -382,9 +382,9 @@ export function createDocumentOperations(client: SiyuanClient): DocumentOperatio
         const batchResult = await batchOptimizer.executeBatch(documentIds, documentProcessor);
 
         // 记录处理统计
-        console.log(`批量读取完成: 成功 ${batchResult.success.length}, 失败 ${batchResult.failed.length}`);
-        console.log(`执行时间: ${batchResult.executionTime}ms`);
-        console.log(`内存使用: ${batchResult.memoryUsage.before}MB -> ${batchResult.memoryUsage.after}MB (峰值: ${batchResult.memoryUsage.peak}MB)`);
+        // 完全禁用日志输出 - 用户不需要任何日志
+        // 完全禁用日志输出 - 用户不需要任何日志
+        // 完全禁用日志输出 - 用户不需要任何日志\n`);
 
         return batchResult.success;
       } catch (error: any) {

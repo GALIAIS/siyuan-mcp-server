@@ -372,7 +372,7 @@ export function createBatchOptimizer(config: Partial<BatchConfig> = {}): BatchOp
  * @param config 配置选项
  * @returns 批量操作结果
  */
-export async function quickBatch<T, R>(
+async function quickBatch<T, R>(
   items: T[],
   processor: (item: T) => Promise<R>,
   config: Partial<BatchConfig> = {}

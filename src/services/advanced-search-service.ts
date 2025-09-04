@@ -432,7 +432,7 @@ export class AdvancedSearchService {
         blockTypes: {}
       };
     } catch (error) {
-      console.error('计算分面统计失败:', error);
+      // 完全禁用日志输出 - 用户不需要任何日志
       return undefined;
     }
   }

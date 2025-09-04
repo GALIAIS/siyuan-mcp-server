@@ -12,7 +12,7 @@ import { SiyuanService } from '../services/SiyuanService.js';
 /**
  * 应用程序配置接口
  */
-export interface ApplicationConfig {
+interface ApplicationConfig {
   siyuan: {
     baseURL?: string;
     token: string;
@@ -66,7 +66,7 @@ const DEFAULT_CONFIG: ApplicationConfig = {
 /**
  * 应用程序状态枚举
  */
-export enum ApplicationState {
+enum ApplicationState {
   UNINITIALIZED = 'uninitialized',
   INITIALIZING = 'initializing',
   RUNNING = 'running',
@@ -78,7 +78,7 @@ export enum ApplicationState {
 /**
  * 应用程序类
  */
-export class Application {
+class Application {
   private config: ApplicationConfig;
   private state: ApplicationState = ApplicationState.UNINITIALIZED;
   private startTime: Date | null = null;
@@ -194,4 +194,4 @@ export class Application {
 }
 
 // 导出全局应用程序实例
-export const application = new Application();
+const application = new Application();

@@ -16,7 +16,7 @@ import { contextManager } from './contextStore/manager';
 import { resourceDirectory } from './resources';
 import { promptTemplateManager } from './prompts';
 import { createPortDiscovery } from './utils/portDiscovery';
-import { optimizedTools, handleOptimizedTool } from './tools/optimizedTools.js';
+
 import { getAllMergedTools, handleMergedTool } from './tools/Tools.js';
 
 const server = new Server(
@@ -35,7 +35,7 @@ const server = new Server(
 
 // 创建思源客户端
 const siyuanClient = createSiyuanClient({
-  baseURL: process.env.SIYUAN_BASE_URL || 'http://127.0.0.1:6806',
+  baseURL: process.env.SIYUAN_BASE_URL || undefined,
   token: process.env.SIYUAN_TOKEN || '',
   autoDiscoverPort: true
 });

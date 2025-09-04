@@ -22,7 +22,7 @@ export interface SiyuanResponse<T = any> {
   data: T;
 }
 
-export class SiyuanClient {
+class SiyuanClient {
   private config: SiyuanClientConfig;
 
   constructor(config: SiyuanClientConfig) {

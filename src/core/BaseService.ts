@@ -6,6 +6,8 @@
 import logger from '../logger.js';
 import { cacheManager } from '../utils/cache.js';
 import { performanceOptimizer } from '../utils/performanceOptimizer.js';
+import { securityValidator, ValidationResult, RequestContext } from './SecurityValidator.js';
+import { retryManager } from '../utils/retry.js';
 import { 
   BaseConfig, 
   OperationResult, 
@@ -13,6 +15,29 @@ import {
   HealthCheckResult,
   ModuleStatus 
 } from '../interfaces/index.js';
+
+interface SecureOperationOptions {
+  useCache?: boolean;
+  cacheKey?: string;
+  cacheTTL?: number;
+  timeout?: number;
+  skipValidation?: boolean;
+  skipPermissionCheck?: boolean;
+  context?: RequestContext;
+  retryOptions?: {
+    maxRetries: number;
+    baseDelay: number;
+  };
+}
+
+interface ServiceSecurityConfig {
+  enableInputValidation: boolean;
+  enablePermissionCheck: boolean;
+  enableRateLimit: boolean;
+  enableAuditLog: boolean;
+  maxOperationsPerMinute: number;
+  sensitiveOperations: string[];
+}
 
 /**
  * 基础服务抽象类

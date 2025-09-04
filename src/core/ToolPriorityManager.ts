@@ -407,20 +407,20 @@ export const toolPriorityManager = new ToolPriorityManager();
 /**
  * 便捷函数：验证工具调用
  */
-export function validateToolCall(toolName: string, parameters?: any) {
+function validateToolCall(toolName: string, parameters?: any) {
   return toolPriorityManager.validateToolCall(toolName, parameters);
 }
 
 /**
  * 便捷函数：记录工具调用
  */
-export function recordToolCall(record: ToolCallRecord) {
+function recordToolCall(record: ToolCallRecord) {
   return toolPriorityManager.recordToolCall(record);
 }
 
 /**
  * 便捷函数：获取建议调用顺序
  */
-export function getSuggestedCallOrder(targetTool: string): string[] {
+function getSuggestedCallOrder(targetTool: string): string[] {
   return toolPriorityManager.getSuggestedCallOrder(targetTool);
 }

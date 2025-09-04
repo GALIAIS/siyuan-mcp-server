@@ -6,7 +6,7 @@
 /**
  * 设置Node.js进程的编码
  */
-export function setupEncoding(): void {
+function setupEncoding(): void {
   // 设置标准输出编码为UTF-8
   if (process.stdout.setEncoding) {
     process.stdout.setEncoding('utf8');
@@ -35,30 +35,24 @@ export function setupEncoding(): void {
 /**
  * 安全的控制台输出，避免乱码
  */
-export function safeLog(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
+function safeLog(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
   const timestamp = new Date().toISOString();
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
   
   try {
-    // 尝试直接输出
-    if (level === 'error') {
-      console.error(`${prefix} ${message}`);
-    } else if (level === 'warn') {
-      console.warn(`${prefix} ${message}`);
-    } else {
-      console.log(`${prefix} ${message}`);
-    }
+    // MCP协议要求：所有日志必须输出到stderr，不能污染stdout
+    // 完全禁用日志输出 - 用户不需要任何日志
   } catch (error) {
     // 如果出现编码问题，使用ASCII安全输出
     const safeMessage = message.replace(/[^\x00-\x7F]/g, '?');
-    console.log(`${prefix} ${safeMessage}`);
+    // 完全禁用日志输出 - 用户不需要任何日志
   }
 }
 
 /**
  * 将中文消息转换为英文，避免乱码
  */
-export function toEnglishMessage(chineseMessage: string): string {
+function toEnglishMessage(chineseMessage: string): string {
   const messageMap: Record<string, string> = {
     '正在扫描端口': 'Scanning port',
     '端口扫描完成': 'Port scan completed',

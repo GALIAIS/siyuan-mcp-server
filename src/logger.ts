@@ -1,15 +1,16 @@
 /**
- * 简单的日志记录器
+ * 完全静默的日志记录器
+ * 用户不需要任何日志输出
  */
 
-export interface LogLevel {
+interface LogLevel {
   DEBUG: number;
   INFO: number;
   WARN: number;
   ERROR: number;
 }
 
-export const LOG_LEVELS: LogLevel = {
+const LOG_LEVELS: LogLevel = {
   DEBUG: 0,
   INFO: 1,
   WARN: 2,
@@ -17,34 +18,35 @@ export const LOG_LEVELS: LogLevel = {
 };
 
 class Logger {
-  private currentLevel: number = LOG_LEVELS.INFO;
+  private currentLevel: number = LOG_LEVELS.ERROR + 1; // 设置为最高级别，禁用所有日志
 
   setLevel(level: number): void {
-    this.currentLevel = level;
+    // 忽略设置，保持静默
   }
 
   debug(message: any, ...args: any[]): void {
-    if (this.currentLevel <= LOG_LEVELS.DEBUG) {
-      console.debug('[DEBUG]', message, ...args);
-    }
+    // 完全静默 - 用户不需要任何日志
   }
 
   info(message: any, ...args: any[]): void {
-    if (this.currentLevel <= LOG_LEVELS.INFO) {
-      console.info('[INFO]', message, ...args);
-    }
+    // 完全静默 - 用户不需要任何日志
   }
 
   warn(message: any, ...args: any[]): void {
-    if (this.currentLevel <= LOG_LEVELS.WARN) {
-      console.warn('[WARN]', message, ...args);
-    }
+    // 完全静默 - 用户不需要任何日志
   }
 
   error(message: any, ...args: any[]): void {
-    if (this.currentLevel <= LOG_LEVELS.ERROR) {
-      console.error('[ERROR]', message, ...args);
-    }
+    // 完全静默 - 用户不需要任何日志
+  }
+
+  silentInfo(message: any, ...args: any[]): void {
+    // 完全静默 - 用户不需要任何日志
+  }
+
+  private formatMessage(message: any, ...args: any[]): string {
+    // 保留方法以避免编译错误，但不使用
+    return '';
   }
 }
 

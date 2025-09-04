@@ -118,4 +118,4 @@ export class TokenOptimizer {
   }
 }
 
-export const tokenOptimizer = new TokenOptimizer();
+const tokenOptimizer = new TokenOptimizer();

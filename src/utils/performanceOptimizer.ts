@@ -128,7 +128,7 @@ export const performanceOptimizer = new PerformanceOptimizer();
 /**
  * 内存优化装饰器
  */
-export function memoryOptimized<T extends (...args: any[]) => Promise<any>>(
+function memoryOptimized<T extends (...args: any[]) => Promise<any>>(
   target: T,
   options: { cacheKey?: string; ttl?: number } = {}
 ): T {

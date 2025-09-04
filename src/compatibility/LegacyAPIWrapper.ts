@@ -10,7 +10,7 @@ import logger from '../logger.js';
 /**
  * 传统API接口（保持向后兼容）
  */
-export interface LegacySiyuanClient {
+interface LegacySiyuanClient {
   // 基础方法
   request(endpoint: string, data?: any): Promise<any>;
   checkHealth(): Promise<{ status: string; detail: any }>;
@@ -48,7 +48,7 @@ export interface LegacySiyuanClient {
 /**
  * 传统API封装器类
  */
-export class LegacyAPIWrapper implements LegacySiyuanClient {
+class LegacyAPIWrapper implements LegacySiyuanClient {
   private siyuanService: SiyuanService | null = null;
 
   constructor() {
@@ -282,16 +282,16 @@ export class LegacyAPIWrapper implements LegacySiyuanClient {
 /**
  * 创建传统API客户端（向后兼容）
  */
-export function createSiyuanClient(config: any): LegacySiyuanClient {
+function createSiyuanClient(config: any): LegacySiyuanClient {
   logger.info('创建传统API客户端（兼容模式）');
   return new LegacyAPIWrapper();
 }
 
 // 导出传统接口类型（向后兼容）
-export type SiyuanClient = LegacySiyuanClient;
+type SiyuanClient = LegacySiyuanClient;
 
 // 导出配置接口
-export interface SiyuanClientConfig {
+interface SiyuanClientConfig {
   baseURL?: string;
   token: string;
   autoDiscoverPort?: boolean;

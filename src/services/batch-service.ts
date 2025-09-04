@@ -4,7 +4,7 @@
  */
 
 import { SiyuanClient } from '../siyuanClient/index.js';
-import logger from '../logger.js';
+import logger from '../logger';
 
 export interface BatchCreateBlocksRequest {
   blocks: Array<{

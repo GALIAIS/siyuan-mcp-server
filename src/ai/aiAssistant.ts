@@ -1,7 +1,7 @@
 import { SiyuanClient } from '../siyuanClient';
 import logger from '../logger';
 
-export interface AIContext {
+interface AIContext {
   sessionId: string;
   conversationHistory: Array<{
     role: 'user' | 'assistant';
@@ -14,7 +14,7 @@ export interface AIContext {
   workingMemory: Record<string, any>;
 }
 
-export interface AIWorkflowStep {
+interface AIWorkflowStep {
   id: string;
   type: 'search' | 'create' | 'update' | 'analyze' | 'summarize';
   description: string;
@@ -22,7 +22,7 @@ export interface AIWorkflowStep {
   dependencies?: string[];
 }
 
-export interface AIWorkflow {
+interface AIWorkflow {
   id: string;
   name: string;
   description: string;
@@ -30,7 +30,7 @@ export interface AIWorkflow {
   context: AIContext;
 }
 
-export class AIAssistant {
+class AIAssistant {
   private contexts = new Map<string, AIContext>();
   private workflows = new Map<string, AIWorkflow>();
 
