@@ -7,6 +7,8 @@ import logger from '../logger';
 import { createBlockOperations, BlockOperations } from './blocks';
 import { createDocumentOperations, DocumentOperations } from './documents';
 import { createAssetOperations, AssetOperations } from './assets';
+import { SqlService } from '../services/sql-service';
+import { FileService } from '../services/file-service';
 import { createPortDiscovery } from '../utils/portDiscovery';
 import { BatchOperations } from '../tools/batchOperations';
 import { withRetry } from '../utils/retry';
@@ -25,7 +27,7 @@ export interface SiyuanClient {
   searchNotes(query: string, limit?: number): Promise<any>;
   
   // SQL查询方法
-  sql(params: { stmt: string }): Promise<any>;
+  executeSql(params: { stmt: string }): Promise<any>;
   
   // 块操作方法
   insertBlock(params: { data: string; dataType: string; parentID?: string; previousID?: string }): Promise<any>;
@@ -57,6 +59,8 @@ export interface SiyuanClient {
   blocks: BlockOperations;
   documents: DocumentOperations;
   assets: AssetOperations;
+  sqlService: SqlService;
+  file: FileService;
   batch: BatchOperations;
   system: {
     getSystemInfo(): Promise<any>;
@@ -124,12 +128,18 @@ export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
   const documents = createDocumentOperations({ request } as any);
   const assets = createAssetOperations({ request } as any);
   
+  // 创建SQL和文件服务
+  const sqlService = new SqlService({ request } as any);
+  const fileService = new FileService({ request } as any);
+  
   // 先创建client对象的基本结构
   const clientBase: Partial<SiyuanClient> = {
     request,
     blocks,
     documents,
     assets,
+    sqlService: sqlService,
+    file: fileService,
     // 其他方法会在后面添加
   };
   
@@ -220,8 +230,8 @@ export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
     },
 
     // SQL查询方法
-    sql: async (params: { stmt: string }) => {
-      return await request('/api/query/sql', params);
+    executeSql: async (params: { stmt: string }) => {
+      return await request('/api/sql/query', params);
     },
 
     // 块操作方法
@@ -264,6 +274,8 @@ export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
     blocks,
     documents,
     assets,
+    sqlService: sqlService,
+    file: fileService,
     batch,
     system: {
       getSystemInfo: async () => {

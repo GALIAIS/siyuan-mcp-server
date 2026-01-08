@@ -69,7 +69,7 @@ export class AdvancedSearchService {
       const sql = this.buildSearchSQL(request.query, request.options);
       
       // 执行搜索
-      const response = await this.client.sql({ stmt: sql });
+      const response = await this.client.sqlService.query(sql);
       
       if (response.code !== 0) {
         throw new Error(`搜索执行失败: ${response.msg}`);

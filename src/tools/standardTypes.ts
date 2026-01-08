@@ -128,6 +128,13 @@ export interface ToolConfig {
   rateLimitPerMinute: number;
   validationRules: ValidationRule[];
   requiredPermissions: string[];
+  aiUsage?: {
+    whenToUse: string;
+    whenNotToUse: string;
+    examples: string[];
+    alternativeTools?: string[];
+    performanceNotes?: string;
+  };
 }
 
 /**
@@ -150,6 +157,13 @@ export abstract class StandardTool {
    * 执行工具逻辑
    */
   abstract execute(parameters: Record<string, any>): Promise<any>;
+
+  /**
+   * 获取AI使用元数据
+   */
+  getAIUsageMetadata() {
+    return this.config.aiUsage || null;
+  }
 
   /**
    * 参数验证

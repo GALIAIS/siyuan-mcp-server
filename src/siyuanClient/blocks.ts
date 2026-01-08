@@ -7,7 +7,18 @@ export interface BlockOperations {
   insertBlock(content: string, parentID?: string, previousID?: string): Promise<any>;
   deleteBlock(id: string): Promise<any>;
   moveBlock(id: string, parentID: string, previousID?: string): Promise<any>;
-  
+
+  // 块插入操作
+  prependBlock(data: string, parentID: string, dataType?: string): Promise<any>;
+  appendBlock(data: string, parentID: string, dataType?: string): Promise<any>;
+
+  // 块折叠操作
+  foldBlock(id: string): Promise<any>;
+  unfoldBlock(id: string): Promise<any>;
+
+  // 块引用操作
+  transferBlockRef(id: string, targetID: string): Promise<any>;
+
   // 块查询操作
   getBlocksByType(type: string, limit?: number): Promise<any>;
   getChildBlocks(parentID: string): Promise<any>;
@@ -46,6 +57,37 @@ export function createBlockOperations(client: SiyuanClient): BlockOperations {
         id,
         parentID,
         previousID
+      });
+    },
+
+    async prependBlock(data: string, parentID: string, dataType = 'markdown') {
+      return await client.request('/api/block/prependBlock', {
+        data,
+        dataType,
+        parentID
+      });
+    },
+
+    async appendBlock(data: string, parentID: string, dataType = 'markdown') {
+      return await client.request('/api/block/appendBlock', {
+        data,
+        dataType,
+        parentID
+      });
+    },
+
+    async foldBlock(id: string) {
+      return await client.request('/api/block/foldBlock', { id });
+    },
+
+    async unfoldBlock(id: string) {
+      return await client.request('/api/block/unfoldBlock', { id });
+    },
+
+    async transferBlockRef(id: string, targetID: string) {
+      return await client.request('/api/block/transferBlockRef', {
+        id,
+        targetID
       });
     },
 

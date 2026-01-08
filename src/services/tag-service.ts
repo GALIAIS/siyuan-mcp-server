@@ -57,7 +57,7 @@ export class TagService {
     try {
       // 使用SQL查询获取所有标签信息
       const sql = this.buildTagsQuery(options);
-      const response = await this.client.sql({ stmt: sql });
+      const response = await this.client.sqlService.query(sql);
 
       if (response.code !== 0) {
         throw new Error(`查询标签失败: ${response.msg}`);
@@ -117,7 +117,7 @@ export class TagService {
       }
 
       const sql = this.buildTagSearchQuery(keyword, options);
-      const response = await this.client.sql({ stmt: sql });
+      const response = await this.client.sqlService.query(sql);
 
       if (response.code !== 0) {
         throw new Error(`搜索标签失败: ${response.msg}`);
@@ -276,7 +276,7 @@ export class TagService {
       }
 
       const sql = this.buildBlocksByTagQuery(tagName, options);
-      const response = await this.client.sql({ stmt: sql });
+      const response = await this.client.sqlService.query(sql);
 
       if (response.code !== 0) {
         throw new Error(`查询标签块失败: ${response.msg}`);
@@ -303,7 +303,7 @@ export class TagService {
   async getTagStatistics(timeRange: 'week' | 'month' | 'year' | 'all' = 'all') {
     try {
       const sql = this.buildTagStatisticsQuery(timeRange);
-      const response = await this.client.sql({ stmt: sql });
+      const response = await this.client.sqlService.query(sql);
 
       if (response.code !== 0) {
         throw new Error(`获取标签统计失败: ${response.msg}`);

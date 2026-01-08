@@ -199,6 +199,147 @@ export class SiyuanService extends BaseService {
     );
   }
 
+  /**
+   * 打开笔记本
+   */
+  async openNotebook(notebookId: string): Promise<OperationResult<void>> {
+    return await this.executeOperation(
+      '打开笔记本',
+      async () => {
+        const response = await this.request('/api/notebook/openNotebook', {
+          notebook: notebookId
+        });
+
+        if (response.code === 0) {
+          this.invalidateNotebookCache();
+          return;
+        }
+        throw new Error(response.msg || '打开笔记本失败');
+      }
+    );
+  }
+
+  /**
+   * 关闭笔记本
+   */
+  async closeNotebook(notebookId: string): Promise<OperationResult<void>> {
+    return await this.executeOperation(
+      '关闭笔记本',
+      async () => {
+        const response = await this.request('/api/notebook/closeNotebook', {
+          notebook: notebookId
+        });
+
+        if (response.code === 0) {
+          this.invalidateNotebookCache();
+          return;
+        }
+        throw new Error(response.msg || '关闭笔记本失败');
+      }
+    );
+  }
+
+  /**
+   * 重命名笔记本
+   */
+  async renameNotebook(notebookId: string, name: string): Promise<OperationResult<Notebook>> {
+    return await this.executeOperation(
+      '重命名笔记本',
+      async () => {
+        const response = await this.request('/api/notebook/renameNotebook', {
+          notebook: notebookId,
+          name
+        });
+
+        if (response.code === 0 && response.data) {
+          this.invalidateNotebookCache();
+          return {
+            id: notebookId,
+            name,
+            icon: response.data.icon || '📔',
+            closed: false,
+            sort: response.data.sort || 0
+          };
+        }
+        throw new Error(response.msg || '重命名笔记本失败');
+      }
+    );
+  }
+
+  /**
+   * 删除笔记本
+   */
+  async removeNotebook(notebookId: string): Promise<OperationResult<boolean>> {
+    return await this.executeOperation(
+      '删除笔记本',
+      async () => {
+        const response = await this.request('/api/notebook/removeNotebook', {
+          notebook: notebookId
+        });
+
+        if (response.code === 0) {
+          this.invalidateNotebookCache();
+          return true;
+        }
+        throw new Error(response.msg || '删除笔记本失败');
+      }
+    );
+  }
+
+  /**
+   * 获取笔记本配置
+   */
+  async getNotebookConf(notebookId: string): Promise<OperationResult<any>> {
+    return await this.executeOperation(
+      '获取笔记本配置',
+      async () => {
+        const response = await this.request('/api/notebook/getNotebookConf', {
+          notebook: notebookId
+        });
+
+        if (response.code === 0 && response.data) {
+          return response.data;
+        }
+        throw new Error(response.msg || '获取笔记本配置失败');
+      },
+      {
+        useCache: true,
+        cacheKey: `notebook_conf_${notebookId}`,
+        cacheTTL: 300000
+      }
+    );
+  }
+
+  /**
+   * 保存笔记本配置
+   */
+  async setNotebookConf(notebookId: string, conf: any): Promise<OperationResult<void>> {
+    return await this.executeOperation(
+      '保存笔记本配置',
+      async () => {
+        const response = await this.request('/api/notebook/setNotebookConf', {
+          notebook: notebookId,
+          conf
+        });
+
+        if (response.code === 0) {
+          const cache = cacheManager.getCache(this.serviceName);
+          cache.delete(`notebook_conf_${notebookId}`);
+          return;
+        }
+        throw new Error(response.msg || '保存笔记本配置失败');
+      }
+    );
+  }
+
+  /**
+   * 使笔记本缓存失效
+   */
+  private invalidateNotebookCache(): void {
+    const cache = cacheManager.getCache(this.serviceName);
+    cache.delete('notebooks_list');
+  }
+
   // ==================== 文档操作 ====================
 
   /**
@@ -317,6 +458,230 @@ export class SiyuanService extends BaseService {
           return true;
         }
         throw new Error(response.msg || '删除文档失败');
+      }
+    );
+  }
+
+  /**
+   * 重命名文档（路径方式）
+   */
+  async renameDoc(
+    notebook: string,
+    path: string,
+    title: string
+  ): Promise<OperationResult<{ id: string; path: string }>> {
+    return await this.executeOperation(
+      '重命名文档',
+      async () => {
+        const response = await this.request('/api/filetree/renameDoc', {
+          notebook,
+          path,
+          title
+        });
+
+        if (response.code === 0 && response.data) {
+          return {
+            id: response.data.id,
+            path: response.data.path || path
+          };
+        }
+        throw new Error(response.msg || '重命名文档失败');
+      }
+    );
+  }
+
+  /**
+   * 重命名文档（ID方式）
+   */
+  async renameDocByID(id: string, title: string): Promise<OperationResult<string>> {
+    return await this.executeOperation(
+      '重命名文档',
+      async () => {
+        const response = await this.request('/api/filetree/renameDocByID', {
+          id,
+          title
+        });
+
+        if (response.code === 0) {
+          return id;
+        }
+        throw new Error(response.msg || '重命名文档失败');
+      }
+    );
+  }
+
+  /**
+   * 删除文档（路径方式）
+   */
+  async removeDoc(notebook: string, path: string): Promise<OperationResult<boolean>> {
+    return await this.executeOperation(
+      '删除文档',
+      async () => {
+        const response = await this.request('/api/filetree/removeDoc', {
+          notebook,
+          path
+        });
+
+        if (response.code === 0) {
+          return true;
+        }
+        throw new Error(response.msg || '删除文档失败');
+      }
+    );
+  }
+
+  /**
+   * 删除文档（ID方式）
+   */
+  async removeDocByID(id: string): Promise<OperationResult<boolean>> {
+    return await this.executeOperation(
+      '删除文档',
+      async () => {
+        const response = await this.request('/api/filetree/removeDocByID', {
+          id
+        });
+
+        if (response.code === 0) {
+          const cache = cacheManager.getCache(this.serviceName);
+          cache.delete(`document_${id}`);
+          return true;
+        }
+        throw new Error(response.msg || '删除文档失败');
+      }
+    );
+  }
+
+  /**
+   * 移动文档（路径方式）
+   */
+  async moveDocs(
+    fromNotebook: string,
+    fromPaths: string[],
+    toNotebook: string,
+    toPath: string
+  ): Promise<OperationResult<{ moved: number }>> {
+    return await this.executeOperation(
+      '移动文档',
+      async () => {
+        const response = await this.request('/api/filetree/moveDocs', {
+          fromNotebook,
+          fromPaths,
+          toNotebook,
+          toPath
+        });
+
+        if (response.code === 0) {
+          return {
+            moved: fromPaths.length
+          };
+        }
+        throw new Error(response.msg || '移动文档失败');
+      }
+    );
+  }
+
+  /**
+   * 移动文档（ID方式）
+   */
+  async moveDocsByID(
+    fromIDs: string[],
+    toID: string
+  ): Promise<OperationResult<{ moved: number }>> {
+    return await this.executeOperation(
+      '移动文档',
+      async () => {
+        const response = await this.request('/api/filetree/moveDocsByID', {
+          fromIDs,
+          toID
+        });
+
+        if (response.code === 0) {
+          return {
+            moved: fromIDs.length
+          };
+        }
+        throw new Error(response.msg || '移动文档失败');
+      }
+    );
+  }
+
+  /**
+   * 根据路径获取可读路径
+   */
+  async getHPathByPath(notebook: string, path: string): Promise<OperationResult<string>> {
+    return await this.executeOperation(
+      '获取可读路径',
+      async () => {
+        const response = await this.request('/api/filetree/getHPathByPath', {
+          notebook,
+          path
+        });
+
+        if (response.code === 0 && response.data) {
+          return response.data.path;
+        }
+        throw new Error(response.msg || '获取可读路径失败');
+      }
+    );
+  }
+
+  /**
+   * 根据ID获取可读路径
+   */
+  async getHPathByID(id: string): Promise<OperationResult<string>> {
+    return await this.executeOperation(
+      '获取可读路径',
+      async () => {
+        const response = await this.request('/api/filetree/getHPathByID', {
+          id
+        });
+
+        if (response.code === 0 && response.data) {
+          return response.data.path;
+        }
+        throw new Error(response.msg || '获取可读路径失败');
+      }
+    );
+  }
+
+  /**
+   * 根据ID获取存储路径
+   */
+  async getPathByID(id: string): Promise<OperationResult<{ notebook: string; path: string }>> {
+    return await this.executeOperation(
+      '获取存储路径',
+      async () => {
+        const response = await this.request('/api/filetree/getPathByID', {
+          id
+        });
+
+        if (response.code === 0 && response.data) {
+          return {
+            notebook: response.data.box,
+            path: response.data.path
+          };
+        }
+        throw new Error(response.msg || '获取存储路径失败');
+      }
+    );
+  }
+
+  /**
+   * 根据可读路径获取ID
+   */
+  async getIDsByHPath(notebook: string, path: string): Promise<OperationResult<string[]>> {
+    return await this.executeOperation(
+      '获取文档ID',
+      async () => {
+        const response = await this.request('/api/filetree/getIDsByHPath', {
+          notebook,
+          path
+        });
+
+        if (response.code === 0 && response.data) {
+          return response.data.ids || [];
+        }
+        throw new Error(response.msg || '获取文档ID失败');
       }
     );
   }

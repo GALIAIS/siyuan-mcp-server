@@ -86,6 +86,118 @@ export class StandardToolRegistry implements ToolRegistry {
   }
 
   /**
+   * 获取工具的AI使用元数据
+   */
+  getAIUsageMetadata(toolName: string) {
+    const tool = this.tools.get(toolName);
+    if (!tool) {
+      return null;
+    }
+    return tool.getAIUsageMetadata();
+  }
+
+  /**
+   * 获取所有工具的AI使用元数据
+   */
+  getAllAIUsageMetadata() {
+    const metadata: Record<string, any> = {};
+    for (const [name, tool] of this.tools.entries()) {
+      metadata[name] = tool.getAIUsageMetadata();
+    }
+    return metadata;
+  }
+
+  /**
+   * 根据使用场景推荐工具
+   */
+  recommendToolsForScenario(scenario: string): string[] {
+    const recommendations: Array<{ toolName: string; relevance: number }> = [];
+
+    for (const [name, tool] of this.tools.entries()) {
+      const aiUsage = tool.getAIUsageMetadata();
+      if (!aiUsage) continue;
+
+      let relevance = 0;
+      const scenarioLower = scenario.toLowerCase();
+      const whenToUseLower = aiUsage.whenToUse.toLowerCase();
+
+      // 检查whenToUse中是否包含场景关键词
+      if (whenToUseLower.includes(scenarioLower)) {
+        relevance += 10;
+      }
+
+      // 检查示例中是否包含场景
+      for (const example of aiUsage.examples) {
+        if (example.toLowerCase().includes(scenarioLower)) {
+          relevance += 5;
+        }
+      }
+
+      if (relevance > 0) {
+        recommendations.push({ toolName: name, relevance });
+      }
+    }
+
+    // 按相关性排序
+    recommendations.sort((a, b) => b.relevance - a.relevance);
+
+    return recommendations.map(r => r.toolName);
+  }
+
+  /**
+   * 获取工具选择建议
+   */
+  getToolSelectionAdvice(userIntent: string) {
+    const intentLower = userIntent.toLowerCase();
+    const advice: {
+      recommended: string[];
+      alternatives: string[];
+      reasoning: string[];
+    } = {
+      recommended: [],
+      alternatives: [],
+      reasoning: []
+    };
+
+    // 分析用户意图并推荐工具
+    for (const [name, tool] of this.tools.entries()) {
+      const aiUsage = tool.getAIUsageMetadata();
+      if (!aiUsage) continue;
+
+      // 检查whenToUse
+      if (aiUsage.whenToUse.toLowerCase().includes(intentLower)) {
+        advice.recommended.push(name);
+        advice.reasoning.push(`工具 '${name}' 的使用场景包含：${aiUsage.whenToUse}`);
+      }
+
+      // 检查示例
+      for (const example of aiUsage.examples) {
+        if (example.toLowerCase().includes(intentLower)) {
+          if (!advice.recommended.includes(name)) {
+            advice.recommended.push(name);
+          }
+          advice.reasoning.push(`工具 '${name}' 的示例：${example}`);
+        }
+      }
+
+      // 收集替代工具
+      if (aiUsage.alternativeTools) {
+        for (const altTool of aiUsage.alternativeTools) {
+          if (!advice.alternatives.includes(altTool)) {
+            advice.alternatives.push(altTool);
+          }
+        }
+      }
+    }
+
+    // 去重
+    advice.recommended = [...new Set(advice.recommended)];
+    advice.alternatives = [...new Set(advice.alternatives)];
+
+    return advice;
+  }
+
+  /**
    * 执行工具
    */
   async execute(toolName: string, parameters: Record<string, any>): Promise<StandardToolResponse> {

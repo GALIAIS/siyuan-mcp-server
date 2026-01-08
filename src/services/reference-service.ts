@@ -172,7 +172,7 @@ export class ReferenceService {
     `;
 
     try {
-      const response = await this.client.sql({ stmt: sql });
+      const response = await this.client.sqlService.query(sql);
       if (response.code !== 0) {
         throw new Error(`查询出链失败: ${response.msg}`);
       }
@@ -206,7 +206,7 @@ export class ReferenceService {
     `;
 
     try {
-      const response = await this.client.sql({ stmt: sql });
+      const response = await this.client.sqlService.query(sql);
       if (response.code !== 0) {
         throw new Error(`查询入链失败: ${response.msg}`);
       }
