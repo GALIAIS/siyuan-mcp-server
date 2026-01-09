@@ -47,7 +47,7 @@ export class SqlService {
    * ```
    */
   async query(stmt: string): Promise<SqlQueryResponse> {
-    return await this.client.request('/api/sql/query', { stmt });
+    return await this.client.request('/api/query/sql', { stmt });
   }
 
   /**

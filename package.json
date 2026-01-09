@@ -1,6 +1,6 @@
 {
   "name": "siyuan-mcp-server",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Model Context Protocol server for SiYuan notes with AI integration and token optimization",
   "main": "dist/index.js",
   "bin": {

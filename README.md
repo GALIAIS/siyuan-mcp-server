@@ -92,18 +92,27 @@ npm link
       "command": "npx",
       "args": ["siyuan-mcp-server"],
       "env": {
-        "SIYUAN_API_TOKEN": "your-api-token",
-        "SIYUAN_API_URL": "http://127.0.0.1:6806"
+        "SIYUAN_API_TOKEN": "your-api-token"
       }
     }
   }
 }
 ```
 
+**注意**: 
+- `SIYUAN_API_URL` 是可选的，如果不配置，系统会自动发现思源笔记的可用端口
+- 如果需要指定端口，可以添加 `"SIYUAN_API_URL": "http://127.0.0.1:6806"`
+
 ### 5. 环境变量
 
 - `SIYUAN_API_TOKEN`: 思源笔记 API Token（必需）
-- `SIYUAN_API_URL`: 思源笔记 API 地址（默认：http://127.0.0.1:6806）(可选,一般情况会自动获取)
+- `SIYUAN_API_URL`: 思源笔记 API 地址（可选，默认自动发现可用端口）
+
+**端口自动发现**:
+- 系统会自动扫描思源笔记的常用端口（6806, 6807, 6808）
+- 如果思源笔记正在运行，系统会自动连接到正确的端口
+- 如果自动发现失败，会尝试使用默认端口 6806
+- 如需指定端口，可手动设置 `SIYUAN_API_URL` 环境变量
 
 ## 🛠️ 技术栈
 

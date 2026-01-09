@@ -66,7 +66,7 @@ export interface SiyuanClient {
     getSystemInfo(): Promise<any>;
   };
   
-  // 兼容性方法（保持向后兼容）
+  // 兼容性方法
   getBlock(id: string): Promise<any>;
   createBlock(content: string, parentID?: string): Promise<any>;
   updateBlock(id: string, content: string): Promise<any>;
@@ -76,7 +76,10 @@ export interface SiyuanClient {
 export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
   let { baseURL, token, autoDiscoverPort = true } = config;
   
-  // 创建HTTP客户端（先使用默认配置）
+  // 端口发现状态
+  let portDiscoveryPromise: Promise<void> | null = null;
+  
+  // 创建HTTP客户端
   const httpClient = axios.create({
     baseURL: baseURL || undefined,
     timeout: 30000,
@@ -86,29 +89,43 @@ export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
     }
   });
 
-  // 自动发现端口（优化版）
-  if (autoDiscoverPort && (!baseURL || baseURL === '' || undefined)) {
-    const portDiscovery = createPortDiscovery(config.token);
-    
-    // 异步发现端口并更新 httpClient 的 baseURL
-    portDiscovery.autoDiscover().then(result => {
-      if (result) {
-        baseURL = result.baseURL;
-        httpClient.defaults.baseURL = result.baseURL;
-        logger.info(`端口发现成功，使用端口: ${result.port}，URL: ${result.baseURL}`);
-      } else {
-        logger.warn('端口发现失败，请确保思源笔记正在运行。将尝试使用默认端口 6806');
+  /**
+   * 自动发现端口
+   */
+  const discoverPort = async (): Promise<void> => {
+    if (autoDiscoverPort && (!baseURL || baseURL === '' || baseURL === undefined)) {
+      const portDiscovery = createPortDiscovery(config.token);
+      
+      try {
+        const result = await portDiscovery.autoDiscover();
+        if (result) {
+          baseURL = result.baseURL;
+          httpClient.defaults.baseURL = result.baseURL;
+          logger.info(`端口发现成功，使用端口: ${result.port}，URL: ${result.baseURL}`);
+        } else {
+          logger.warn('端口发现失败，请确保思源笔记正在运行。将尝试使用默认端口 6806');
+          baseURL = 'http://127.0.0.1:6806/';
+          httpClient.defaults.baseURL = baseURL;
+        }
+      } catch (error) {
+        logger.error('端口发现过程中出错:', error);
+        logger.warn('将尝试使用默认端口 6806 连接');
+        baseURL = 'http://127.0.0.1:6806/';
+        httpClient.defaults.baseURL = baseURL;
       }
-    }).catch(error => {
-      logger.error('端口发现过程中出错:', error);
-      logger.warn('将尝试使用默认端口 6806 连接');
-    });
-  } else if (baseURL) {
-    logger.info(`使用自定义思源笔记 URL: ${baseURL}`);
-  }
+    } else if (baseURL) {
+      logger.info(`使用自定义思源笔记 URL: ${baseURL}`);
+    }
+  };
 
-  // 通用请求方法
+  portDiscoveryPromise = discoverPort();
+
   const request = async (endpoint: string, data?: any): Promise<any> => {
+    if (portDiscoveryPromise) {
+      await portDiscoveryPromise;
+      portDiscoveryPromise = null;
+    }
+
     try {
       logger.info(`发送请求到: ${endpoint}`, { data });
       const response = await withRetry(async () => {
@@ -118,6 +135,22 @@ export function createSiyuanClient(config: SiyuanClientConfig): SiyuanClient {
       logger.info(`请求响应: ${endpoint}`, { status: response.status, data: response.data });
       return response.data;
     } catch (error: any) {
+      if (error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET') {
+        logger.warn(`连接失败，可能是思源笔记端口变化，尝试重新发现端口...`);
+        
+        try {
+          await discoverPort();
+          
+          logger.info(`重试请求: ${endpoint}`);
+          const response = await httpClient.post(endpoint, data);
+          logger.info(`重试请求响应: ${endpoint}`, { status: response.status, data: response.data });
+          return response.data;
+        } catch (retryError: any) {
+          logger.error(`重试请求失败: ${endpoint}`, { error: retryError.message });
+          throw retryError;
+        }
+      }
+      
       logger.error(`API请求失败: ${endpoint}`, { error: error.message, data });
       throw error;
     }

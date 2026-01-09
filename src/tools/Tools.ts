@@ -493,10 +493,16 @@ export class MergedTools {
 
         // ==================== 增强API工具处理 ====================
         case 'batch_create_blocks':
-          return await this.batchService.batchCreateBlocks(args);
+          return await this.batchService.batchCreateBlocks({
+            blocks: args.requests,
+            options: {}
+          });
 
         case 'batch_update_blocks':
-          return await this.batchService.batchUpdateBlocks(args);
+          return await this.batchService.batchUpdateBlocks({
+            updates: args.requests,
+            options: {}
+          });
 
         case 'batch_delete_blocks':
           return await this.batchService.batchDeleteBlocks(args.blockIds);

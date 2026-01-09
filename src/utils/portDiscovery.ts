@@ -31,37 +31,73 @@ export class SiyuanPortDiscovery {
     try {
       logger.silentInfo('尝试从port.json文件读取端口信息...');
       
-      // 构建port.json文件路径
       const homeDir = os.homedir();
       const portJsonPath = path.join(homeDir, '.config', 'siyuan', 'port.json');
       
-      // 检查文件是否存在
       if (!fs.existsSync(portJsonPath)) {
         logger.silentInfo('port.json文件不存在');
         return null;
       }
       
-      // 读取文件内容
       const fileContent = fs.readFileSync(portJsonPath, 'utf8');
       const portData = JSON.parse(fileContent);
       
-      // 获取所有端口
-      const ports = Object.values(portData) as string[];
+      // port.json 格式: { "PID": "PORT" }
+      const entries = Object.entries(portData) as [string, string][];
       
-      if (ports.length === 0) {
+      if (entries.length === 0) {
         logger.silentInfo('port.json文件中没有端口信息');
         return null;
       }
       
-      // 验证每个端口
-      for (const portStr of ports) {
+      let kernelPids: Set<string> = new Set();
+      
+      if (process.platform === 'win32') {
+        try {
+          const { stdout: processOutput } = await execAsync('tasklist /FI "IMAGENAME eq SiYuan-Kernel.exe" /FO CSV');
+          
+          if (processOutput.includes('SiYuan-Kernel.exe')) {
+            const lines = processOutput.split('\n');
+            const kernelLines = lines.filter(line => line.includes('SiYuan-Kernel.exe'));
+            
+            for (const line of kernelLines) {
+              const csvMatch = line.match(/"([^"]+)","(\d+)","([^"]+)","(\d+)","([^"]+)"/);
+              if (csvMatch) {
+                kernelPids.add(csvMatch[2]);
+              }
+            }
+          }
+        } catch (error) {
+          logger.warn('获取SiYuan-Kernel.exe进程列表失败:', error);
+        }
+      }
+      
+      logger.silentInfo(`找到SiYuan-Kernel.exe进程PIDs: ${Array.from(kernelPids).join(', ')}`);
+      
+      const validEntries = entries.filter(([pid, portStr]) => {
         const port = parseInt(portStr);
-        if (isNaN(port)) continue;
-        
-        logger.silentInfo(`验证port.json中的端口: ${port}`);
+        return !isNaN(port) && port > 0 && port <= 65535;
+      });
+      
+      const kernelEntries = validEntries.filter(([pid]) => kernelPids.has(pid));
+      const otherEntries = validEntries.filter(([pid]) => !kernelPids.has(pid));
+      
+      for (const [pid, portStr] of kernelEntries) {
+        const port = parseInt(portStr);
+        logger.silentInfo(`验证SiYuan-Kernel.exe进程 PID ${pid} 的端口: ${port}`);
         
         if (await this.isValidSiyuanPort(port)) {
-          logger.silentInfo(`port.json中的端口 ${port} 验证成功`);
+          logger.silentInfo(`SiYuan-Kernel.exe进程 PID ${pid} 的端口 ${port} 验证成功`);
+          return port;
+        }
+      }
+      
+      for (const [pid, portStr] of otherEntries) {
+        const port = parseInt(portStr);
+        logger.silentInfo(`验证端口: ${port} (PID: ${pid})`);
+        
+        if (await this.isValidSiyuanPort(port)) {
+          logger.silentInfo(`端口 ${port} 验证成功`);
           return port;
         }
       }

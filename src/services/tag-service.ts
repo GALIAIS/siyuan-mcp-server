@@ -331,20 +331,19 @@ export class TagService {
   private buildTagsQuery(options: any): string {
     const { sortBy = 'name', sortOrder = 'asc', limit, offset } = options;
     
-    // 使用更简单和兼容的查询方式
     let sql = `
       SELECT 
-        DISTINCT SUBSTR(content, 2) as tag_name,
-        1 as usage_count,
-        created as created_at,
-        updated as last_used
+        SUBSTR(content, 2) as tag_name,
+        COUNT(*) as usage_count,
+        MIN(created) as created_at,
+        MAX(updated) as last_used
       FROM blocks 
       WHERE content LIKE '#%' 
         AND content NOT LIKE '#%#%'
         AND LENGTH(TRIM(SUBSTR(content, 2))) > 0
+      GROUP BY tag_name
     `;
 
-    // 添加排序
     const sortFieldMap: { [key: string]: string } = {
       'name': 'tag_name',
       'count': 'usage_count',
@@ -355,7 +354,6 @@ export class TagService {
 
     sql += ` ORDER BY ${sortField} ${sortOrder.toUpperCase()}`;
 
-    // 添加分页
     if (limit) {
       sql += ` LIMIT ${limit}`;
       if (offset) {
@@ -374,17 +372,14 @@ export class TagService {
     
     return `
       SELECT 
-        DISTINCT TRIM(tag.content) as tag_name,
+        SUBSTR(content, 2) as tag_name,
         COUNT(*) as usage_count,
-        MIN(b.created) as created_at,
-        MAX(b.updated) as last_used
-      FROM blocks b
-      JOIN (
-        SELECT id, TRIM(SUBSTR(content, 2)) as content 
-        FROM blocks 
-        WHERE content LIKE '#%' AND type = 'tag'
-      ) tag ON b.id = tag.id OR b.content LIKE '%' || tag.content || '%'
-      WHERE tag.content LIKE '%${keyword}%' AND tag.content != ''
+        MIN(created) as created_at,
+        MAX(updated) as last_used
+      FROM blocks 
+      WHERE content LIKE '#${keyword}%' 
+        AND content NOT LIKE '#%#%'
+        AND LENGTH(TRIM(SUBSTR(content, 2))) > 0
       GROUP BY tag_name
       HAVING usage_count >= ${minUsageCount}
       ORDER BY usage_count DESC
@@ -430,22 +425,20 @@ export class TagService {
         'year': 365
       }[timeRange] || 30;
       
-      dateFilter = `AND b.updated >= datetime('now', '-${days} days')`;
+      dateFilter = `AND updated >= datetime('now', '-${days} days')`;
     }
 
     return `
       SELECT 
-        DISTINCT TRIM(tag.content) as tag_name,
+        SUBSTR(content, 2) as tag_name,
         COUNT(*) as usage_count,
-        MIN(b.created) as first_used,
-        MAX(b.updated) as last_used
-      FROM blocks b
-      JOIN (
-        SELECT id, TRIM(SUBSTR(content, 2)) as content 
-        FROM blocks 
-        WHERE content LIKE '#%' AND type = 'tag'
-      ) tag ON b.id = tag.id OR b.content LIKE '%' || tag.content || '%'
-      WHERE tag.content != '' ${dateFilter}
+        MIN(created) as first_used,
+        MAX(updated) as last_used
+      FROM blocks 
+      WHERE content LIKE '#%' 
+        AND content NOT LIKE '#%#%'
+        AND LENGTH(TRIM(SUBSTR(content, 2))) > 0
+        ${dateFilter}
       GROUP BY tag_name
       ORDER BY usage_count DESC
     `;
